@@ -1,36 +1,35 @@
 module Lib where
 
-data List a = Nil | Cons a (List a)
-  deriving (Eq, Show)
+infixr 6 :::
+
+data List a = Nil | (:::) a (List a) deriving Eq
+
+instance Show a => Show (List a) where
+  show x = "[" ++ showList' x ++ "]"
+
+showList' :: Show a => List a -> String
+showList' Nil = ""
+showList' (x ::: Nil) = show x
+showList' (x ::: xs) = show x ++ "," ++ showList' xs
+
+instance Functor List where
+  fmap f Nil = Nil
+  fmap f (x ::: l) = (f x) ::: (fmap f l)
 
 infixr 5 +++
 
 (+++) :: List a -> List a -> List a
 Nil +++ l = l
 l +++ Nil = l
-Cons x Nil +++ l = Cons x l
-Cons x t +++ l = Cons x (t +++ l)
-
-instance Functor List where
-  -- fmap :: Functor f => (a -> b) -> f a -> f b
-  fmap f Nil = Nil
-  fmap f (Cons x t) = Cons (f x) (fmap f t)
+x ::: Nil +++ l = x ::: l
+x ::: t +++ l = x ::: (t +++ l)
 
 instance Applicative List where
-  -- pure :: Applicative f => a -> f a
-  -- (<*>) :: Applicative f => f (a -> b) -> f a -> f b
-  pure x = Cons x Nil
+  pure x = x ::: Nil
   Nil <*> _ = Nil
-  Cons f fs <*> m = (f <$> m) +++ (fs <*> m)
+  f ::: fs <*> m = (f <$> m) +++ (fs <*> m)
 
 instance Monad List where
-  -- (>>=) :: Monad m => m a -> (a -> m b) -> m b
-  -- return :: Monad m => a -> m a
-  --
-  -- (return x) >>= f == f x
-  -- m >>= return == m
-  -- (m >>= f) >>= g == m >>= (\x -> f x >>= g)
   Nil >>= f = Nil
-  Cons x t >>= f = f x +++ (t >>= f)
+  x ::: t >>= f = f x +++ (t >>= f)
   return = pure
-
